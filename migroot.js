@@ -158,14 +158,14 @@ class Migroot {
     #getStatusContainer(status) {
             switch (status) {
               case 'Not started':
-                return this.containers.notStarted;
+                return this.config.containers.notStarted;
               case 'In progress':
-                return this.containers.inProgress;
+                return this.config.containers.inProgress;
               case 'Ready':
-                return this.containers.ready;
+                return this.config.containers.ready;
               default:
                 console.error('Unknown status:', status);
-                return this.containers.notStarted;
+                return this.config.containers.notStarted;
             }
           }
 
