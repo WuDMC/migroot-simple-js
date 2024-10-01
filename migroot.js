@@ -156,18 +156,18 @@ class Migroot {
     }
 
     #getStatusContainer(status) {
-    switch (status) {
-      case 'Not started':
-        return notStartedContainer;
-      case 'In progress':
-        return inProgressContainer;
-      case 'Ready':
-        return readyContainer;
-      default:
-        console.error('Unknown status:', status);
-        return notStartedContainer;
-    }
-  }
+            switch (status) {
+              case 'Not started':
+                return this.containers.notStarted;
+              case 'In progress':
+                return this.containers.inProgress;
+              case 'Ready':
+                return this.containers.ready;
+              default:
+                console.error('Unknown status:', status);
+                return this.containers.notStarted;
+            }
+          }
 
     #setCardContent(clone, item) {
         clone.querySelector('.ac-doc__title').textContent = item.DocumentTitle;
