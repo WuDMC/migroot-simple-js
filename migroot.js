@@ -216,7 +216,7 @@ class Migroot {
               case 'Ready':
                 return this.config.containers.ready;
               default:
-                this.log.error(`Unknown status: ${status}`');
+                this.log.error(`Unknown status: ${status}`);
                 return this.config.containers.notStarted;
             }
           }
