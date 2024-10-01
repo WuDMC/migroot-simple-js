@@ -258,7 +258,7 @@ class Migroot {
         const uploadContainer = clone.querySelector('.ac-doc__action');
         const originalLink = clone.querySelector('.original-link');
         const translateLink = clone.querySelector('.translate-link');
-        
+        var button;
         if (item.OriginalStatus != 'Not uploaded') {
           if (originalLink) originalLink.href = item.OriginalLink;
         };
