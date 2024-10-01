@@ -278,9 +278,12 @@ class Migroot {
         } else if (item.Status === 'In progress') {
           // any task in ptogress without a translate and have button
             this.log.info(item);
-        	button = uploadContainer.querySelector('.ac-submit.w-button')
+            console.log(item);
             this.log.info(clone);
-            this.log.info(item);
+            console.log(clone);
+        	button = uploadContainer.querySelector('.ac-submit.w-button');
+            this.log.info(button);
+            console.log(button);
             if (button) button.innerText = "Reload file"
         };
         
