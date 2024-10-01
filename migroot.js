@@ -1,3 +1,56 @@
+class Logger {
+    constructor(config) {
+        this.config = config;
+    }
+
+    // Получение текущего времени с миллисекундами
+    _getCurrentTime() {
+        const now = new Date();
+        const timeString = now.toISOString().slice(11, 23); // Формат HH:MM:SS.sss
+        return timeString;
+    }
+
+    // Метод для вывода лога
+    _log(message, type = 'info') {
+        const styles = {
+            info: 'color: blue; font-weight: bold;',
+            warning: 'color: orange; font-weight: bold;',
+            error: 'color: red; font-weight: bold;',
+            debug: 'color: green; font-weight: bold;'
+        };
+
+        const logType = type.toLowerCase();
+        const timestamp = this._getCurrentTime();
+
+        if (styles[logType]) {
+            console.log(`%c[${timestamp}] [${logType.toUpperCase()}]: ${message}`, styles[logType]);
+        } else {
+            console.log(`[${timestamp}] [UNKNOWN]: ${message}`);
+        }
+    }
+
+    info(message) {
+        if (this.config.debug) {
+            this._log(message, 'info');
+        }
+    }
+
+    warning(message) {
+        this._log(message, 'warning');
+    }
+
+    error(message) {
+        this._log(message, 'error');
+    }
+
+    debug(message) {
+        if (this.config.debug) {
+            this._log(message, 'debug');
+        }
+    }
+}
+
+
 // const CONFIG = {
 //     user: {
         // fullName: 'Denis Mironov',
