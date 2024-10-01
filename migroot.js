@@ -15,8 +15,7 @@ class Logger {
         const styles = {
             info: 'color: blue; font-weight: bold;',
             warning: 'color: orange; font-weight: bold;',
-            error: 'color: red; font-weight: bold;',
-            debug: 'color: green; font-weight: bold;'
+            error: 'color: red; font-weight: bold;'
         };
 
         const logType = type.toLowerCase();
@@ -41,12 +40,6 @@ class Logger {
 
     error(message) {
         this._log(message, 'error');
-    }
-
-    debug(message) {
-        if (this.debug) {
-            this._log(message, 'debug');
-        }
     }
 }
 
