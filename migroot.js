@@ -1,6 +1,6 @@
 class Logger {
-    constructor(config) {
-        this.config = config;
+    constructor(debug = false) {
+        this.debug = debug;
     }
 
     // Получение текущего времени с миллисекундами
@@ -25,12 +25,12 @@ class Logger {
         if (styles[logType]) {
             console.log(`%c[${timestamp}] [${logType.toUpperCase()}]: ${message}`, styles[logType]);
         } else {
-            console.log(`[${timestamp}] [UNKNOWN]: ${message}`);
+            console.log(`[${timestamp}] [LOGGER]: ${message}`);
         }
     }
 
     info(message) {
-        if (this.config.debug) {
+        if (this.debug) {
             this._log(message, 'info');
         }
     }
@@ -44,7 +44,7 @@ class Logger {
     }
 
     debug(message) {
-        if (this.config.debug) {
+        if (this.debug) {
             this._log(message, 'debug');
         }
     }
@@ -86,57 +86,56 @@ class Migroot {
         this.cards = null;
         this.get_url = null;
         this.post_url = null;
+        this.log = new Logger(this.config.debug);
     }
 
     async init_dashboard(callback = null) {
         try {
-            console.log('Step 1: Clearing containers');
+            this.log.debug('Step 1: Clearing containers');
             this.#clearContainers();
 
-
-            console.log('User fetched:', this.config.user.email, 'User plan:', this.config.plan);
-            console.log('Step 3: Configuring URLs');
+            this.log.debug('Step 2: Configuring URLs');
             this.#configureUserUrls();
-            console.log('Get URL:', this.get_url, 'Post URL:', this.post_url);
+            this.log.debug('Get URL:', this.get_url, 'Post URL:', this.post_url);
 
-            console.log('Step 4: Fetching data');
+            this.log.debug('Step 3: Fetching data from backend');
             await this.#fetchGetData();
-            console.log('Dashboard initialized successfully');
+            this.log.debug('Dashboard initialized successfully');
             if (callback && typeof callback === 'function') {
-                console.log('callback 1');
+                this.log.debug('callback called');
                 callback(); // Можно передать сюда аргументы, если нужно
             }
         } catch (error) {
-            console.error("Error during init dashboard:", error);
+            this.log.error("Error during init dashboard:", error);
         }
     };
 
     createCard(item) {
-        console.log('Step 5: Creating card for item:', item);
+        this.log.debug('Step 5: Creating card for item:', item);
         if (!this.#shouldDisplayTask(item)) {
-            console.log('Task is not eligible for display, skipping');
+            this.log.debug('Task is not eligible for display, skipping');
             return;
         }
         const targetContainer = this.#getStatusContainer(item.Status);
         const newCardId = `doc-${item.id}`;
         const clone = this.config.template.cloneNode(true);
 
-        console.log('Step 6: Setting card content for card ID:', newCardId);
+        this.log.debug('Step 6: Setting card content for card ID:', newCardId);
         this.#setCardContent(clone, item);
 
-        console.log('Step 7: Handling data attributes');
+        this.log.debug('Step 7: Handling data attributes');
         this.#handleDataAttributes(clone, item);
 
-        console.log('Step 8: Handling comment');
+        this.log.debug('Step 8: Handling comment');
         this.#handleComment(clone, item);
 
-        console.log('Step 9: Handling buttons');
+        this.log.debug('Step 9: Handling buttons');
         this.#handleButtons(clone, item);
 
-        console.log('Step 10: Handling file status');
+        this.log.debug('Step 10: Handling file status');
         this.#handleFileStatus(clone, item);
 
-        console.log('Step 11: Replacing existing card if needed');
+        this.log.debug('Step 11: Replacing existing card if needed');
         this.#replaceExistingCard(newCardId, clone, targetContainer);
     }
 
@@ -149,7 +148,7 @@ class Migroot {
         .then(response => response.json())
         .then(data => this.createCard(data.result.updatedData))
         .catch(error => {
-            console.error('Error updating card:', error);
+            this.log.error('Error updating card:', error);
             this.#showLoader(cardId, false);
         });
     }
@@ -217,7 +216,7 @@ class Migroot {
               case 'Ready':
                 return this.config.containers.ready;
               default:
-                console.error('Unknown status:', status);
+                this.log.error('Unknown status:', status);
                 return this.config.containers.notStarted;
             }
           }
@@ -285,8 +284,11 @@ class Migroot {
           if (uploadContainer && item.TranslateStatus != 'Not loaded') uploadContainer.querySelector('.ac-submit.w-button').innerText = "Reload Translated"
         } else if (item.Status === 'In progress') {
           // any task in ptogress without a translate and have button
+            this.log.debug(item);
         	button = uploadContainer.querySelector('.ac-submit.w-button')
-          if (button) button.innerText = "Reload file"
+            this.log.debug(clone);
+            this.log.debug(item);
+            if (button) button.innerText = "Reload file"
         };
         
         
