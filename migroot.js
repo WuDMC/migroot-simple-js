@@ -96,7 +96,7 @@ class Migroot {
 
             this.log.debug('Step 2: Configuring URLs');
             this.#configureUserUrls();
-            this.log.debug('Get URL:', this.get_url, 'Post URL:', this.post_url);
+            this.log.debug(`Get URL:  ${this.get_url} Post URL: ${this.post_url}`);
 
             this.log.debug('Step 3: Fetching data from backend');
             await this.#fetchGetData();
@@ -106,12 +106,12 @@ class Migroot {
                 callback(); // Можно передать сюда аргументы, если нужно
             }
         } catch (error) {
-            this.log.error("Error during init dashboard:", error);
+            this.log.error(`Error during init dashboard: ${error.message}`);
         }
     };
 
     createCard(item) {
-        this.log.debug('Step 5: Creating card for item:', item);
+        this.log.debug(`Step 5: Creating card for item: ${item}`);
         if (!this.#shouldDisplayTask(item)) {
             this.log.debug('Task is not eligible for display, skipping');
             return;
@@ -120,7 +120,7 @@ class Migroot {
         const newCardId = `doc-${item.id}`;
         const clone = this.config.template.cloneNode(true);
 
-        this.log.debug('Step 6: Setting card content for card ID:', newCardId);
+        this.log.debug(`Step 6: Setting card content for card ID: ${newCardId}`);
         this.#setCardContent(clone, item);
 
         this.log.debug('Step 7: Handling data attributes');
@@ -148,7 +148,7 @@ class Migroot {
         .then(response => response.json())
         .then(data => this.createCard(data.result.updatedData))
         .catch(error => {
-            this.log.error('Error updating card:', error);
+            this.log.error(`Error updating card: ${error.message}`);
             this.#showLoader(cardId, false);
         });
     }
@@ -216,7 +216,7 @@ class Migroot {
               case 'Ready':
                 return this.config.containers.ready;
               default:
-                this.log.error('Unknown status:', status);
+                this.log.error(`Unknown status: ${status}`');
                 return this.config.containers.notStarted;
             }
           }
