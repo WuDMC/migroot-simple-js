@@ -84,18 +84,18 @@ class Migroot {
 
     async init_dashboard(callback = null) {
         try {
-            this.log.debug('Step 1: Clearing containers');
+            this.log.info('Step 1: Clearing containers');
             this.#clearContainers();
 
-            this.log.debug('Step 2: Configuring URLs');
+            this.log.info('Step 2: Configuring URLs');
             this.#configureUserUrls();
-            this.log.debug(`Get URL:  ${this.get_url} Post URL: ${this.post_url}`);
+            this.log.info(`Get URL:  ${this.get_url} Post URL: ${this.post_url}`);
 
-            this.log.debug('Step 3: Fetching data from backend');
+            this.log.info('Step 3: Fetching data from backend');
             await this.#fetchGetData();
-            this.log.debug('Dashboard initialized successfully');
+            this.log.info('Dashboard initialized successfully');
             if (callback && typeof callback === 'function') {
-                this.log.debug('callback called');
+                this.log.info('callback called');
                 callback(); // Можно передать сюда аргументы, если нужно
             }
         } catch (error) {
@@ -104,31 +104,31 @@ class Migroot {
     };
 
     createCard(item) {
-        this.log.debug(`Step 5: Creating card for item: ${item}`);
+        this.log.info(`Step 5: Creating card for item: ${item}`);
         if (!this.#shouldDisplayTask(item)) {
-            this.log.debug('Task is not eligible for display, skipping');
+            this.log.info('Task is not eligible for display, skipping');
             return;
         }
         const targetContainer = this.#getStatusContainer(item.Status);
         const newCardId = `doc-${item.id}`;
         const clone = this.config.template.cloneNode(true);
 
-        this.log.debug(`Step 6: Setting card content for card ID: ${newCardId}`);
+        this.log.info(`Step 6: Setting card content for card ID: ${newCardId}`);
         this.#setCardContent(clone, item);
 
-        this.log.debug('Step 7: Handling data attributes');
+        this.log.info('Step 7: Handling data attributes');
         this.#handleDataAttributes(clone, item);
 
-        this.log.debug('Step 8: Handling comment');
+        this.log.info('Step 8: Handling comment');
         this.#handleComment(clone, item);
 
-        this.log.debug('Step 9: Handling buttons');
+        this.log.info('Step 9: Handling buttons');
         this.#handleButtons(clone, item);
 
-        this.log.debug('Step 10: Handling file status');
+        this.log.info('Step 10: Handling file status');
         this.#handleFileStatus(clone, item);
 
-        this.log.debug('Step 11: Replacing existing card if needed');
+        this.log.info('Step 11: Replacing existing card if needed');
         this.#replaceExistingCard(newCardId, clone, targetContainer);
     }
 
@@ -277,10 +277,10 @@ class Migroot {
           if (uploadContainer && item.TranslateStatus != 'Not loaded') uploadContainer.querySelector('.ac-submit.w-button').innerText = "Reload Translated"
         } else if (item.Status === 'In progress') {
           // any task in ptogress without a translate and have button
-            this.log.debug(item);
+            this.log.info(item);
         	button = uploadContainer.querySelector('.ac-submit.w-button')
-            this.log.debug(clone);
-            this.log.debug(item);
+            this.log.info(clone);
+            this.log.info(item);
             if (button) button.innerText = "Reload file"
         };
         
