@@ -1,5 +1,5 @@
 <script>
-// Constants
+// Constants  must be as config  sended to Migroot object
 const template = document.getElementById('doc-template');
 const btn_upload_file = document.getElementById('upload_file').innerHTML;
 const btn_open_tf = document.getElementById('open_tf').innerHTML;
@@ -8,6 +8,11 @@ const btn_submit_url = document.getElementById('submit_url').innerHTML;
 const readyContainer = document.getElementById('ready');
 const inProgressContainer = document.getElementById('in-progress');
 const notStartedContainer = document.getElementById('not-started');
+
+// must be as config 
+
+// MIGROOT OBJECT
+// constants inside migroot object, which must be acessable from migroot.constant_name
 const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 var username = null;
 var usermail = null;
@@ -17,28 +22,81 @@ var user = null;
 var userplan = null;
 var usercoins = 0;
 
-async function fetchUser() {
+// Fetch data from the server
+
+// public methods
+//logic init dashboard must be accessable from migroo.itinDashboard()
+async function itinDashboard(providedUsername = null, providelinkId = null, callback = null) {
     try {
-        user = await Outseta.getUser();
+    		clearContainers();
+        if (providedUsername) {
+        	username = providedUsername;
+        	usermail = providedUsername;
+        } else {
+          await fetchUser();
+ 					userplan = getUserPlan();
+        	username = getUser();
+        	usermail = getUserMail();
+        };
+				let web_url = 'https://script.google.com/macros/s/AKfycbxLRZANt4ayb0x_IRClCEw6cjA5s7b2Iv6v4sjNMmNbL1WMsNTx32eK1q8zw4CHVOJq0Q/exec';
+				web_url = updateWebUrl(web_url, providelinkId);
+        get_url = `${web_url}${username}&action=getData`;
+        post_url = `${web_url}${username}&action=updateData`;
+        fetchGetData(callback); 
     } catch (error) {
-        console.error(error);
+        console.error("Error during  init dashboard:", error);
     }
-    return user;
 };
 
-//logic init dashboard
+  // Update card URL after file upload
+  function UpdateCardUrl(id, url, filetype) {
+    const cardId = `doc-${id}`;
+    showLoader(cardId, true, 'Updating groots...');
+    const data = {
+      id: id,
+      [`${filetype}Link`]: url,
+      [`${filetype}Status`]: 'Uploaded',
+      UserComment: 'check my file please',
+      IconStatus: 'off',
+      Status: 'In progress',
+      Emotion: getRandom(emotions),
+      Comment: getRandom(MigrootReviewComments)
+    };
+    updateCard(data, cardId);
+  }
 
-// Fetch data from the server
-async function fetchGetData() {
+  // Update card comment after task done
+  function UpdateCardComment(id, Comment) {
+    const cardId = `doc-${id}`;
+    showLoader(cardId, true, 'Updating groots');
+    const data = {
+      id: id,
+      UserComment: Comment,
+      IconStatus: 'off',
+      Status: 'In progress',
+      Emotion: getRandom(emotions),
+      Comment: getRandom(MigrootReviewComments)
+    };
+    updateCard(data, cardId);
+  }
+// public methods end
+
+// private methods 
+async function fetchGetData(callback) {
     const response = await fetch(get_url);
     const data = await response.json();
     data.result.forEach(item => {
         CreateCard(item);
     });
-  	await waitForTFAndReload();
+    
+    // Вызов переданной callback функции, если она существует
+    if (typeof callback === 'function') {
+        await callback();
+    }
 }
+// fetchGetData(waitForTFAndReload);
 
-// Helper functions
+// private Helper functions
 function getUser() {
     return user.Email;
 };
@@ -74,80 +132,7 @@ function updateWebUrl(url, providelinkId = null) {
     }
 };
 
-
-
-// Wait for Outseta object to load and then fetch data
-function waitForOutseta() {
-    return new Promise((resolve, reject) => {
-        const checkOutseta = setInterval(() => {
-            if (typeof Outseta !== 'undefined') {
-                clearInterval(checkOutseta);
-                resolve();
-            }
-        }, 100);
-
-        // Остановить проверку и выкинуть ошибку через 3 секунды
-        setTimeout(() => {
-            clearInterval(checkOutseta);
-            reject(new Error('Outseta loading error'));
-        }, 5000);
-    });
-};
-
-async function waitForTFAndReload() {
-    const checkInterval = 100; 
-    const intervalId = setInterval(() => {
-        if (typeof window.tf !== 'undefined') {
-            const buttons = document.querySelectorAll('button[data-tf-popup]');
-            let allLoaded = true;
-            buttons.forEach(button => {
-                if (!button.hasAttribute('data-tf-loaded') || button.getAttribute('data-tf-loaded') !== 'true') {
-                    allLoaded = false; 
-                    window.tf.reload(); 
-                }
-            });
-            if (allLoaded) {
-                clearInterval(intervalId);
-            }
-        } else {
-            console.log("waiting for tf");
-        }
-    }, checkInterval);
-}
-
-async function itinDashboard(providedUsername = null, providelinkId = null) {
-    try {
-    		clearContainers();
-        if (providedUsername) {
-        	username = providedUsername;
-        	usermail = providedUsername;
-        } else {
-          await fetchUser();
- 					userplan = getUserPlan();
-        	username = getUser();
-        	usermail = getUserMail();
-        };
-				let web_url = 'https://script.google.com/macros/s/AKfycbxLRZANt4ayb0x_IRClCEw6cjA5s7b2Iv6v4sjNMmNbL1WMsNTx32eK1q8zw4CHVOJq0Q/exec';
-				web_url = updateWebUrl(web_url, providelinkId);
-        get_url = `${web_url}${username}&action=getData`;
-        post_url = `${web_url}${username}&action=updateData`;
-        fetchGetData(get_url); // передаем URL для получения данных
-    } catch (error) {
-        console.error("Error during  init dashboard:", error);
-    }
-};
-
-window.onload = async function () {
-    try {
-        await waitForOutseta();
-				await itinDashboard();
-    } catch (error) {
-        console.error("Error during dashboard initializing on window on load:", error);
-    }
-};
-</script>
-<script>
-  // logic for work with cards
+  // private constants logic for work with cards
   const emotions = [
     "normal",
     "smile",
@@ -170,7 +155,7 @@ window.onload = async function () {
     return arr[Math.floor(Math.random() * arr.length)];
   };
 
-  // general
+  // general logic to work with dashboard
   function CreateCard(item) {
     if (item.TaskType === 'task-free' && userplan !== 'Free registration') {
       // task free is additional cards which should be added only for free plan users
@@ -226,37 +211,7 @@ window.onload = async function () {
   // general end
 
 
-  // Update card URL after file upload
-  function UpdateCardUrl(id, url, filetype) {
-    const cardId = `doc-${id}`;
-    showLoader(cardId, true, 'Updating groots...');
-    const data = {
-      id: id,
-      [`${filetype}Link`]: url,
-      [`${filetype}Status`]: 'Uploaded',
-      UserComment: 'check my file please',
-      IconStatus: 'off',
-      Status: 'In progress',
-      Emotion: getRandom(emotions),
-      Comment: getRandom(MigrootReviewComments)
-    };
-    updateCard(data, cardId);
-  }
 
-  // Update card comment after task done
-  function UpdateCardComment(id, Comment) {
-    const cardId = `doc-${id}`;
-    showLoader(cardId, true, 'Updating groots');
-    const data = {
-      id: id,
-      UserComment: Comment,
-      IconStatus: 'off',
-      Status: 'In progress',
-      Emotion: getRandom(emotions),
-      Comment: getRandom(MigrootReviewComments)
-    };
-    updateCard(data, cardId);
-  }
 
   // to open link from task and change button name
   function handleUrlRead(button) {
@@ -469,7 +424,86 @@ window.onload = async function () {
       }
     }
   };
+
+// MIGROOT OBJECT END
+
+
+// external function migroot.user = 
+async function fetchUser() {
+    try {
+        user = await Outseta.getUser();
+    } catch (error) {
+        console.error(error);
+    }
+    return user;
+};
+
+// Wait for Outseta object to load and then fetch data
+function waitForOutseta() {
+    return new Promise((resolve, reject) => {
+        const checkOutseta = setInterval(() => {
+            if (typeof Outseta !== 'undefined') {
+                clearInterval(checkOutseta);
+                resolve();
+            }
+        }, 100);
+
+        // Остановить проверку и выкинуть ошибку через 3 секунды
+        setTimeout(() => {
+            clearInterval(checkOutseta);
+            reject(new Error('Outseta loading error'));
+        }, 5000);
+    });
+};
+function waitForMigroot() {
+    return new Promise((resolve, reject) => {
+        const checkMigroot = setInterval(() => {
+            if (typeof Migroot !== 'undefined') {
+                clearInterval(checkMigroot);
+                resolve();
+            }
+        }, 100);
+
+        // Остановить проверку и выкинуть ошибку через 3 секунды
+        setTimeout(() => {
+            clearInterval(checkMigroot);
+            reject(new Error('Migroot loading error'));
+        }, 5000);
+    });
+};
+
+async function waitForTFAndReload() {
+    const checkInterval = 100; 
+    const intervalId = setInterval(() => {
+        if (typeof window.tf !== 'undefined') {
+            const buttons = document.querySelectorAll('button[data-tf-popup]');
+            let allLoaded = true;
+            buttons.forEach(button => {
+                if (!button.hasAttribute('data-tf-loaded') || button.getAttribute('data-tf-loaded') !== 'true') {
+                    allLoaded = false; 
+                    window.tf.reload(); 
+                }
+            });
+            if (allLoaded) {
+                clearInterval(intervalId);
+            }
+        } else {
+            console.log("waiting for tf");
+        }
+    }, checkInterval);
+}
+
+window.onload = async function () {
+    try {
+        await waitForOutseta();
+	await waitForMigroot();
+	await Migroot.itinDashboard();
+    } catch (error) {
+        console.error("Error during dashboard initializing on window on load:", error);
+    }
+};
 </script>
+
 
 <script>
 // upload files logic
@@ -530,7 +564,7 @@ function handleFileUpload(button) {
         })
         .then(data => {
             const updatedUrl = data.file_url;
-            UpdateCardUrl(backendCardId, updatedUrl, filetype);
+            Migroot.UpdateCardUrl(backendCardId, updatedUrl, filetype);
         })
         .catch(error => {
             console.error('Error updating url:', error);
