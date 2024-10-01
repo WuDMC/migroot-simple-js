@@ -1,694 +1,245 @@
-<script>
-// Constants  must be as config  sended to Migroot object
-const template = document.getElementById('doc-template');
-const btn_upload_file = document.getElementById('upload_file').innerHTML;
-const btn_open_tf = document.getElementById('open_tf').innerHTML;
-const btn_open_url = document.getElementById('open_url').innerHTML;
-const btn_submit_url = document.getElementById('submit_url').innerHTML;
-const readyContainer = document.getElementById('ready');
-const inProgressContainer = document.getElementById('in-progress');
-const notStartedContainer = document.getElementById('not-started');
-
-// must be as config 
-
-// MIGROOT OBJECT
-// constants inside migroot object, which must be acessable from migroot.constant_name
-const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-var username = null;
-var usermail = null;
-var get_url = null;
-var post_url = null;
-var user = null;
-var userplan = null;
-var usercoins = 0;
-
-// Fetch data from the server
-
-// public methods
-//logic init dashboard must be accessable from migroo.itinDashboard()
-async function itinDashboard(providedUsername = null, providelinkId = null, callback = null) {
-    try {
-    		clearContainers();
-        if (providedUsername) {
-        	username = providedUsername;
-        	usermail = providedUsername;
-        } else {
-          await fetchUser();
- 					userplan = getUserPlan();
-        	username = getUser();
-        	usermail = getUserMail();
-        };
-				let web_url = 'https://script.google.com/macros/s/AKfycbxLRZANt4ayb0x_IRClCEw6cjA5s7b2Iv6v4sjNMmNbL1WMsNTx32eK1q8zw4CHVOJq0Q/exec';
-				web_url = updateWebUrl(web_url, providelinkId);
-        get_url = `${web_url}${username}&action=getData`;
-        post_url = `${web_url}${username}&action=updateData`;
-        fetchGetData(callback); 
-    } catch (error) {
-        console.error("Error during  init dashboard:", error);
-    }
-};
-
-  // Update card URL after file upload
-  function UpdateCardUrl(id, url, filetype) {
-    const cardId = `doc-${id}`;
-    showLoader(cardId, true, 'Updating groots...');
-    const data = {
-      id: id,
-      [`${filetype}Link`]: url,
-      [`${filetype}Status`]: 'Uploaded',
-      UserComment: 'check my file please',
-      IconStatus: 'off',
-      Status: 'In progress',
-      Emotion: getRandom(emotions),
-      Comment: getRandom(MigrootReviewComments)
-    };
-    updateCard(data, cardId);
-  }
-
-  // Update card comment after task done
-  function UpdateCardComment(id, Comment) {
-    const cardId = `doc-${id}`;
-    showLoader(cardId, true, 'Updating groots');
-    const data = {
-      id: id,
-      UserComment: Comment,
-      IconStatus: 'off',
-      Status: 'In progress',
-      Emotion: getRandom(emotions),
-      Comment: getRandom(MigrootReviewComments)
-    };
-    updateCard(data, cardId);
-  }
-// public methods end
-
-// private methods 
-async function fetchGetData(callback) {
-    const response = await fetch(get_url);
-    const data = await response.json();
-    data.result.forEach(item => {
-        CreateCard(item);
-    });
-    
-    // Вызов переданной callback функции, если она существует
-    if (typeof callback === 'function') {
-        await callback();
-    }
-}
-// fetchGetData(waitForTFAndReload);
-
-// private Helper functions
-function getUser() {
-    return user.Email;
-};
-
-function getUserMail() {
-    return user.Email;
-};
-
-function getUserPlan() {
-	return user.Account.CurrentSubscription.Plan.Name;
-};
-
-
-// sleep 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-};
-
-function clearContainers() {
-    readyContainer.innerHTML = '';        // Очищает контейнер 'ready'
-    inProgressContainer.innerHTML = '';   // Очищает контейнер 'in-progress'
-    notStartedContainer.innerHTML = '';   // Очищает контейнер 'not-started'
-};
-
-// add SS ID from account
-function updateWebUrl(url, providelinkId = null) {
-		if (providelinkId) return url + `?link=${providelinkId}` + "&user="
-    if (user && user.Account.LinkId && user.Account.LinkId.trim() !== "") {
-        let new_url = url + `?link=${user.Account.LinkId}` + "&user=";
-        return new_url;
-    } else {
-        return url + "?user="; 
-    }
-};
-
-  // private constants logic for work with cards
-  const emotions = [
-    "normal",
-    "smile",
-    "surprise"
-  ];
-
-  const MigrootReviewComments = [
-    "Wait for checking",
-    "So-o-o-on please wait",
-    "Okay, let's see!"
-  ];
-
-  const MigrootStartComments = [
-    "Every document tells a story.",
-    "Efficiency is key in document management.",
-    "Timely action is critical to success."
-  ];
-
-  function getRandom(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-  };
-
-  // general logic to work with dashboard
-  function CreateCard(item) {
-    if (item.TaskType === 'task-free' && userplan !== 'Free registration') {
-      // task free is additional cards which should be added only for free plan users
-      return;
-    }
-    if (item.TaskType === 'task-paid' && userplan == 'Free registration') {
-      // task paid is additional cards which should be added only for paid plan users
-      return;
+class Migroot {
+    constructor(config) {
+        this.config = config;
+        this.user = null;
+        this.userplan = null;
+        this.usercoins = 0;
+        this.get_url = null;
+        this.post_url = null;
     }
 
-    const targetContainer = getStatusContainer(item.Status);
-    const new_id = `doc-${item.id}`;
-    const clone = template.cloneNode(true);
+    async init_dashboard(providedUsername = null, providelinkId = null, callback = null) {
+        try {
+            console.log('Step 1: Clearing containers');
+            this.clearContainers();
 
-    setCardContent(clone, item);
-    handeDataAttr(clone, item);
-    handleComment(clone, item);
-    handleButton(clone, item);
-    handleFileStatus(clone, item);
-    if (clone.getAttribute('data-task-type') == 'document' ) {
-      handleDoc(clone, item)
-    } else {
-      handleTask(clone, item);
-    };
-
-    const old_card = document.getElementById(new_id);
-    if (old_card) {
-      old_card.remove();
-    }
-
-    clone.id = new_id;
-    targetContainer.insertBefore(clone, targetContainer.firstChild);
-  }
-
-  function updateCard(data, cardId) {
-    fetch(post_url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(data)
-    })
-      .then(response => response.json())
-      .then(data => {
-      const updatedData = data.result.updatedData;
-      CreateCard(updatedData);
-    })
-      .catch(error => {
-      console.error('Error updating card:', error);
-      showLoader(cardId, false);
-    });
-  };
-  // general end
-
-
-
-
-  // to open link from task and change button name
-  function handleUrlRead(button) {
-    url = button.getAttribute('data-btn-link');
-    window.open(url, '_blank');
-    const uploadContainer = button.closest('.ac-doc__action');
-    uploadContainer.innerHTML = btn_submit_url;
-  };
-
-  // submit task
-  function handleUrlSubmit(button) {
-    const docContainer = button.closest('.ac-doc');
-    const cardId = docContainer.id;
-    const backendCardId = cardId.match(/\d+/)[0];
-    const comment = docContainer.querySelector('input').value;
-    // add raise if comment is empty
-    UpdateCardComment(backendCardId, comment);
-  };
-
-
-  // Get container based on status
-  function getStatusContainer(status) {
-    switch (status) {
-      case 'Not started':
-        return notStartedContainer;
-      case 'In progress':
-        return inProgressContainer;
-      case 'Ready':
-        return readyContainer;
-      default:
-        console.error('Unknown status:', status);
-        return notStartedContainer;
-    }
-  }
-
-  function getUserTimeZone() {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  }
-
-  function formatDateToLocal(isoString) {
-    const date = new Date(isoString);
-    const options = { day: 'numeric', month: 'short', timeZone: userTimeZone };
-    return date.toLocaleDateString('en-GB', options);
-  };
-
-  // common card content for all quests
-  function setCardContent(clone, item) {
-    clone.getElementsByClassName('ac-doc__title')[0].textContent = item.DocumentTitle;
-    clone.getElementsByClassName('ac-doc__description')[0].textContent = item.Description;
-    clone.getElementsByClassName('ac-docs__mark ac-docs__due_date')[0].textContent = formatDateToLocal(item.DueDate);
-
-    clone.getElementsByClassName('ac-docs__mark ac-docs__mark_country')[0].textContent = item.Location;
-    clone.getElementsByClassName('ac-docs__mark ac-docs__applicicant')[0].textContent = item.Applicant === 'You' && user ? user.FirstName : item.Applicant;
-  };
-
-  // data attrs logic
-  function handeDataAttr(clone, item) {
-    clone.setAttribute('data-icon-status', item.IconStatus);
-    clone.setAttribute('data-original-status', item.OriginalStatus);
-    clone.setAttribute('data-translate-status', item.TranslateStatus);
-
-    clone.setAttribute('data-task-type', item.TaskType);
-    clone.setAttribute('data-points', item.Points);
-    clone.setAttribute('data-applicant-id', item.ApplicantID);
-    clone.setAttribute('data-emotion', item.Emotion);
-  }
-
-  // if comment from migroot is empty add random
-  function handleComment(clone, item) {
-    if (!item.Comment || item.Comment.trim() === '') {
-      clone.getElementsByClassName('ac-comment__text')[0].textContent = getRandom(MigrootStartComments);
-      ;
-    } else {
-      clone.getElementsByClassName('ac-comment__text')[0].textContent = item.Comment;
-    }
-  };
-
-  function handleButton(clone, item) {
-    const uploadContainer = clone.querySelector('.ac-doc__action');
-    const ButtonLink = item.ButtonLink;
-    const typeformLink = item.ButtonLink.match(/TF=(.*)/);
-    if (ButtonLink && typeformLink && item.TaskType != 'document') {
-    	uploadContainer.innerHTML = btn_open_tf
-    } else if (ButtonLink && item.TaskType != 'document') {
-    	uploadContainer.innerHTML = btn_open_url
-    } else {
-    	uploadContainer.innerHTML = btn_upload_file
-    }
-  };
-
- function handleFileStatus(clone, item) {
-    if (item.id == '1') {
-      console.log('1')
-    }
-    const filesProgressBlock = clone.querySelector('.ac-doc__progress-bar');
-    const originalFileBlock = clone.querySelector('.original-file-block');
-    const translateFileBlock = clone.querySelector('.translate-file-block');
-		const uploadContainer = clone.querySelector('.ac-doc__action');
-    const originalLink = clone.querySelector('.original-link');
-    const translateLink = clone.querySelector('.translate-link');
-    
-    if (item.OriginalStatus != 'Not uploaded') {
-      if (originalLink) originalLink.href = item.OriginalLink;
-    };
-    
-    if (item.TranslateStatus != 'Not uploaded') {
-      if (translateLink) translateLink.href = item.TranslateLink;
-    };
-    
-    if (item.OriginalStatus === 'Verified' && (item.TaskType != 'document' || item.TranslateStatus === 'Verified' || item.TranslateStatus === 'Not needed')) {
-      if (uploadContainer) uploadContainer.remove();
-    } else if (item.OriginalStatus === 'Verified' && item.TaskType === 'document') {
-      // document with needed and not verified translate
-      if (uploadContainer) uploadContainer.querySelector('.ac-submit.w-button').setAttribute('data-filetype', 'Translate');
-      // IMPORTANT !!!
-      if (uploadContainer) uploadContainer.querySelector('.ac-submit.w-button').innerText = "Upload Translated"
-      if (uploadContainer && item.TranslateStatus != 'Not loaded') uploadContainer.querySelector('.ac-submit.w-button').innerText = "Reload Translated"
-    } else if (item.Status === 'In progress') {
-      // any task in ptogress without a translate and have button
-    	button = uploadContainer.querySelector('.ac-submit.w-button')
-      if (button) button.innerText = "Reload file"
-    };
-    
-    
-    
-    if (item.OriginalStatus === 'Not needed') {
-      if (filesProgressBlock) filesProgressBlock.remove();
-    } else if (item.TranslateStatus === 'Not needed') {
-      if (translateFileBlock) translateFileBlock.remove();
-    };
-};
-
-  function handleTask(clone, item) {
-    // if taskType == 'task'
-    const translateFileBlock = clone.querySelector('.translate-file-block');
-    if (translateFileBlock) translateFileBlock.remove();
-
-    const originalLink = clone.querySelector('.original-link');
-    if (originalLink){
-      const originalLinkTitle = originalLink.querySelector('.ac-doc__stage-title');
-      originalLinkTitle.textContent = "Screenshot";
-    }
-
-    if (item.ButtonLink && item.ButtonLink != '') {
-      // if taskType == 'task' && HAVE custom button links
-      handleTaskButton(clone, item);
-    };
-  };
-
-
-  function handleTaskButton(clone, item) {
-    // if taskType == 'task' && HAVE custom button links
-    const filesProgressBlock = clone.querySelector('.ac-doc__progress-bar');
-    if (filesProgressBlock) filesProgressBlock.remove();
-
-    const uploadContainer = clone.querySelector('.ac-doc__action');
-    if (item.Status === 'Not started') {
-      const typeformLink = item.ButtonLink.match(/TF=(.*)/);
-      if (typeformLink) {
-        // typeform logic
-        const typeformId = typeformLink[1];
-        uploadContainer.querySelector('.ac-poll.w-button').setAttribute('data-tf-popup', typeformId);
-      } else {
-        // standard url open logic
-        uploadContainer.querySelector('.ac-link.w-button').setAttribute('data-btn-link', item.ButtonLink);
-      }
-    } else {
-    	// no more links saved !!!! you can not reread it link
-      // insert read again for example
-      if (uploadContainer) uploadContainer.remove();
-    }
-  };
-
-
-  function handleDoc(clone, item) {
-    // console.log('do nothing')
-  };
-
-
-
-  function toggleTileState(stateElement) {
-    const doc = stateElement.closest('.ac-doc');
-    const docOpen = doc.querySelector('.ac-doc__open');  // Находим элемент ac-doc__open
-    const docAlert = doc.querySelector('.ac-doc__alert');  // Находим элемент ac-doc__alert
-
-    if (docOpen) {
-      if (docOpen.style.display === 'flex') {
-        docOpen.style.display = 'none';
-        stateElement.classList.remove('open');  // Убираем статус open
-        if (docAlert) {
-          docAlert.style.display = 'grid';  // При закрытии делаем alert видимым
-        }
-      } else {
-        docOpen.style.display = 'flex';
-        stateElement.classList.add('open');  // Добавляем статус open
-        if (docAlert) {
-          docAlert.style.display = 'none';  // При открытии скрываем alert
-        }
-      }
-    }
-  };
-
-  // loader for card
-  function showLoader(cardId, show, text = 'Loading') {
-    const loader = document.querySelector(`#${cardId} .ac-doc__loader`);
-    if (loader) {
-      loader.style.display = show ? 'flex' : 'none';
-      if (show) {
-        loader.querySelector('.ac-doc__loader-text').textContent = text;
-      }
-    }
-  };
-
-// MIGROOT OBJECT END
-
-
-// external function migroot.user = 
-async function fetchUser() {
-    try {
-        user = await Outseta.getUser();
-    } catch (error) {
-        console.error(error);
-    }
-    return user;
-};
-
-// Wait for Outseta object to load and then fetch data
-function waitForOutseta() {
-    return new Promise((resolve, reject) => {
-        const checkOutseta = setInterval(() => {
-            if (typeof Outseta !== 'undefined') {
-                clearInterval(checkOutseta);
-                resolve();
+            if (!providedUsername) {
+                console.log('Step 2: Fetching user');
+                await this.fetchUser();
+                this.userplan = this.getUserPlan();
+                console.log('User fetched:', this.user, 'User plan:', this.userplan);
             }
-        }, 100);
 
-        // Остановить проверку и выкинуть ошибку через 3 секунды
-        setTimeout(() => {
-            clearInterval(checkOutseta);
-            reject(new Error('Outseta loading error'));
-        }, 5000);
-    });
-};
-function waitForMigroot() {
-    return new Promise((resolve, reject) => {
-        const checkMigroot = setInterval(() => {
-            if (typeof Migroot !== 'undefined') {
-                clearInterval(checkMigroot);
-                resolve();
-            }
-        }, 100);
+            console.log('Step 3: Configuring URLs');
+            this.configureUserUrls(providedUsername, providelinkId);
+            console.log('Get URL:', this.get_url, 'Post URL:', this.post_url);
 
-        // Остановить проверку и выкинуть ошибку через 3 секунды
-        setTimeout(() => {
-            clearInterval(checkMigroot);
-            reject(new Error('Migroot loading error'));
-        }, 5000);
-    });
-};
-
-async function waitForTFAndReload() {
-    const checkInterval = 100; 
-    const intervalId = setInterval(() => {
-        if (typeof window.tf !== 'undefined') {
-            const buttons = document.querySelectorAll('button[data-tf-popup]');
-            let allLoaded = true;
-            buttons.forEach(button => {
-                if (!button.hasAttribute('data-tf-loaded') || button.getAttribute('data-tf-loaded') !== 'true') {
-                    allLoaded = false; 
-                    window.tf.reload(); 
-                }
-            });
-            if (allLoaded) {
-                clearInterval(intervalId);
-            }
-        } else {
-            console.log("waiting for tf");
-        }
-    }, checkInterval);
-}
-
-window.onload = async function () {
-    try {
-        await waitForOutseta();
-	await waitForMigroot();
-	await Migroot.itinDashboard();
-    } catch (error) {
-        console.error("Error during dashboard initializing on window on load:", error);
-    }
-};
-</script>
-
-
-<script>
-// upload files logic
-function handleFileUpload(button) {
-    const container = button.closest('.ac-doc__files');
-    const cardId = container.closest('.ac-doc').id;
-    const backendCardId = cardId.match(/\d+/)[0];
-    const fileInput = container.querySelector('.fileInput');
-    const statusMessage = container.querySelector('.statusMessage');
-    const filetype = button.dataset['filetype'];
-    const file = fileInput.files[0];
-
-    // Helper functions
-    function setStatus(message) {
-        statusMessage.textContent = message;
-    }
-
-    function isFileValid(file) {
-        if (!file) {
-            setStatus('File not found');
-            return false;
-        } else if (fileInput.files.length > 1) {
-            setStatus('Only one file accepted');
-            return false;
-        } else if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
-            setStatus('Wrong format');
-            return false;
-        } else if (file.size > 10 * 1024 * 1024) { // 10MB
-            setStatus('Please choose file under 10MB');
-            return false;
-        } else {
-            setStatus('Upload started');
-            return true;
+            console.log('Step 4: Fetching data');
+            await this.fetchGetData(callback);
+            console.log('Dashboard initialized successfully');
+        } catch (error) {
+            console.error("Error during init dashboard:", error);
         }
     }
 
-    function uploadFile(base64File, file, cardId, filetype) {
-        const data = {
-            base64file: base64File,
-            mimetype: file.type,
-            username: username,
-            email: usermail,
-            filename: file.name
-        };
+    updateCardUrl(id, url, filetype) {
+        const cardId = `doc-${id}`;
+        const data = this.createUpdateData(id, url, filetype, 'Uploaded');
+        this.updateCard(data, cardId);
+    }
 
-        return fetch('https://gcloud-apisaver-674832863057.europe-west1.run.app/upload', {
+    updateCardComment(id, comment) {
+        const cardId = `doc-${id}`;
+        const data = this.createUpdateData(id, null, null, 'In progress', comment);
+        this.updateCard(data, cardId);
+    }
+
+    createDummyCard() {
+        const dummyCard = this.config.template.cloneNode(true);
+        dummyCard.id = 'dummy-card';
+        dummyCard.querySelector('.ac-doc__title').textContent = 'Dummy Card';
+        dummyCard.querySelector('.ac-doc__description').textContent = 'This is a placeholder card for testing purposes.';
+        dummyCard.querySelector('.ac-docs__mark.ac-docs__due_date').textContent = this.formatDate(new Date().toISOString());
+        dummyCard.querySelector('.ac-docs__mark.ac-docs__mark_country').textContent = 'Test Location';
+        dummyCard.querySelector('.ac-docs__mark.ac-docs__applicicant').textContent = this.user ? this.user.FirstName : 'Test User';
+        dummyCard.setAttribute('data-icon-status', 'test');
+        dummyCard.setAttribute('data-original-status', 'Not uploaded');
+        dummyCard.setAttribute('data-translate-status', 'Not uploaded');
+        const readyContainer = this.getStatusContainer('Ready');
+        readyContainer.insertBefore(dummyCard, readyContainer.firstChild);
+    }
+
+
+    clearContainers() {
+        Object.values(this.config.containers).forEach(container => container.innerHTML = '');
+    }
+
+    async fetchUser() {
+        try {
+            this.user = await Outseta.getUser();
+        } catch (error) {
+            console.error('Error fetching user:', error);
+        }
+    }
+
+    async fetchGetData(callback) {
+        const response = await fetch(this.get_url);
+        const data = await response.json();
+        data.result.forEach(item => this.createCard(item));
+        if (typeof callback === 'function') await callback();
+    }
+
+    configureUserUrls(providedUsername, providelinkId) {
+        const baseUrl = providelinkId ? `${this.config.webUrl}?link=${providelinkId}&user=` : `${this.config.webUrl}?user=`;
+        const username = providedUsername || this.user.Email;
+        this.get_url = `${baseUrl}${username}&action=getData`;
+        this.post_url = `${baseUrl}${username}&action=updateData`;
+    }
+
+    createCard(item) {
+        console.log('Step 5: Creating card for item:', item);
+
+        if (!this.shouldDisplayTask(item)) {
+            console.log('Task is not eligible for display, skipping');
+            return;
+        }
+
+        const targetContainer = this.getStatusContainer(item.Status);
+        const newCardId = `doc-${item.id}`;
+        const clone = this.config.template.cloneNode(true);
+
+        console.log('Step 6: Setting card content for card ID:', newCardId);
+        this.setCardContent(clone, item);
+
+        console.log('Step 7: Handling data attributes');
+        this.handleDataAttributes(clone, item);
+
+        console.log('Step 8: Handling comment');
+        this.handleComment(clone, item);
+
+        console.log('Step 9: Handling buttons');
+        this.handleButtons(clone, item);
+
+        console.log('Step 10: Handling file status');
+        // this.handleFileStatus(clone, item);
+
+        console.log('Step 11: Replacing existing card if needed');
+        this.replaceExistingCard(newCardId, clone, targetContainer);
+    }
+
+    updateCard(data, cardId) {
+        fetch(this.post_url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error during upload file.');
-            }
-            return response.json();
-        })
-        .then(data => {
-            const updatedUrl = data.file_url;
-            Migroot.UpdateCardUrl(backendCardId, updatedUrl, filetype);
-        })
+        .then(response => response.json())
+        .then(data => this.createCard(data.result.updatedData))
         .catch(error => {
-            console.error('Error updating url:', error);
-            showLoader(cardId, false);
-        })
-        .finally(() => {
-            // notification show
+            console.error('Error updating card:', error);
+            this.showLoader(cardId, false);
         });
     }
 
-    // Main logic
-    if (!isFileValid(file)) return;
 
-    const reader = new FileReader();
-    reader.onload = function () {
-        showLoader(cardId, true, 'Showing to Migroot');
-        const base64File = reader.result.split(',')[1];
-        uploadFile(base64File, file, cardId, filetype)
-            .then(() => setStatus(`File uploaded: "${file.name}"`))
-            .catch(error => {
-                console.error('Error during read and upload:', error);
-                setStatus('Error during read and upload');
-                showLoader(cardId, false);
-            });
+    shouldDisplayTask(item) {
+        if (item.TaskType === 'task-free' && this.userplan !== 'Free registration') return false;
+        if (item.TaskType === 'task-paid' && this.userplan === 'Free registration') return false;
+        return true;
+    }
+
+    getStatusContainer(status) {
+        return this.config.containers[status.toLowerCase().replace(' ', '')] || this.config.containers.notStarted;
+    }
+
+    setCardContent(clone, item) {
+        clone.querySelector('.ac-doc__title').textContent = item.DocumentTitle;
+        clone.querySelector('.ac-doc__description').textContent = item.Description;
+        clone.querySelector('.ac-docs__mark.ac-docs__due_date').textContent = this.formatDate(item.DueDate);
+        clone.querySelector('.ac-docs__mark.ac-docs__mark_country').textContent = item.Location;
+        clone.querySelector('.ac-docs__mark.ac-docs__applicicant').textContent = item.Applicant === 'You' && this.user ? this.user.FirstName : item.Applicant;
     };
-    reader.readAsDataURL(file);
-};
-</script>
 
-<script>
-  // Mobile Toggle
-  document.querySelectorAll('.ac-board__header-mobile').forEach(header => {
-    header.addEventListener('click', function() {
-      const colWrap = this.closest('.ac-board__col-wrap');
-      const embed = this.querySelector('.b-embed'); // Находим элемент b-embed внутри header
-      
-      if (colWrap) {
-        const cols = colWrap.querySelectorAll('.ac-board__col');
+    handleDataAttributes(clone, item) {
+      clone.setAttribute('data-icon-status', item.IconStatus);
+      clone.setAttribute('data-original-status', item.OriginalStatus);
+      clone.setAttribute('data-translate-status', item.TranslateStatus);
 
-        cols.forEach(col => {
-          if (col.style.display === 'flex') {
-            col.style.display = 'none';
-            if (embed) {
-              embed.style.transform = 'rotate(0deg)'; // Убираем поворот
-            }
-          } else {
-            col.style.display = 'flex';
-            if (embed) {
-              embed.style.transform = 'rotate(180deg)'; // Поворачиваем на 180 градусов
-            }
-          }
-        });
+      clone.setAttribute('data-task-type', item.TaskType);
+      clone.setAttribute('data-points', item.Points);
+      clone.setAttribute('data-applicant-id', item.ApplicantID);
+      clone.setAttribute('data-emotion', item.Emotion);
       }
-    });
-  });
 
-  // this function needs to be available on global scope (window)
-  function submitTF({ formId, responseId }) {
-    // add it to user commetn and update card
-    console.log(`Form ${formId} submitted, response id: ${responseId}`)
-    {
-      const button = document.querySelector(`button[data-tf-popup="${formId}"]`);
-
-      if (button) {
-        const container = button.closest('.ac-doc__open');
-        if (container) {
-          const card = container.closest('.ac-doc');
-          const cardId = card.id;
-          const backendCardId = cardId.match(/\d+/)[0];  // находит первое число в id
-          const comment = `Form ${formId} submitted, response id: ${responseId}`;
-          UpdateCardComment(backendCardId, comment);
+    handleButtons(clone, item) {
+        const uploadContainer = clone.querySelector('.ac-doc__action');
+        if (item.ButtonLink) {
+            const typeformLink = item.ButtonLink.match(/TF=(.*)/);
+            uploadContainer.innerHTML = typeformLink ? this.config.buttons.openTf : this.config.buttons.openUrl;
         } else {
-          console.error('Container with class .ac-doc__open not found.');
+            uploadContainer.innerHTML = this.config.buttons.uploadFile;
         }
+    };
+
+    handleComment(clone, item) {
+      if (!item.Comment || item.Comment.trim() === '') {
+        clone.getElementsByClassName('ac-comment__text')[0].textContent = getRandom(MigrootStartComments);
+        ;
       } else {
-        console.error(`Button with data-tf-popup="${formId}" not found.`);
+        clone.getElementsByClassName('ac-comment__text')[0].textContent = item.Comment;
       }
-    }
-  };
-  
-  // Функция для подсчета суммы data-points
-function calculatePoints() {
-  let totalPoints = 0;
-
-  // Проходим по всем элементам с классом "ac-doc"
-  const acDocElements = readyContainer.querySelectorAll('.ac-doc');
-  acDocElements.forEach(element => {
-    const points = parseInt(element.getAttribute('data-points'), 10);
-    if (!isNaN(points)) {
-      totalPoints += points;
-    }
-  });
-
-  return totalPoints;
-};
-
-function UpdateUserCoins(result) {
-    if (userplan && userplan === 'Free registration') {
-        usercoins = result;
-    } else {
-        usercoins = 200 + result;
     };
 
-    // Обновляем элемент с классом "ac-points__value" на новое значение
-    const pointsElement = document.querySelector('.ac-points__value');
-    if (pointsElement) {
-        pointsElement.textContent = usercoins;
-    };
+    handleFileStatus(clone, item) {
+        const fileStatus = clone.querySelector('.ac-doc__progress-bar');
+        const originalFileBlock = clone.querySelector('.original-file-block');
+        const translateFileBlock = clone.querySelector('.translate-file-block');
+
+        if (item.OriginalStatus !== 'Not uploaded') {
+            clone.querySelector('.original-link').href = item.OriginalLink;
+        }
+        if (item.TranslateStatus !== 'Not uploaded') {
+            clone.querySelector('.translate-link').href = item.TranslateLink;
+        }
+        if (item.Status === 'In progress' || item.TranslateStatus === 'Verified') {
+            clone.querySelector('.ac-submit.w-button').innerText = "Reload file";
+        }
+    }
+
+    createUpdateData(id, url, filetype, status, userComment = 'Check my file please') {
+        return {
+            id,
+            [`${filetype}Link`]: url,
+            [`${filetype}Status`]: status,
+            UserComment: userComment,
+            IconStatus: 'off',
+            Status: status,
+            Emotion: this.getRandom(this.config.emotions),
+            Comment: this.getRandom(this.config.migrootComments.review)
+        };
+    }
+
+    formatDate(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: this.config.timeZone });
+    }
+
+    getRandom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    replaceExistingCard(newCardId, clone, targetContainer) {
+        const oldCard = document.getElementById(newCardId);
+        if (oldCard) oldCard.remove();
+        clone.id = newCardId;
+        targetContainer.insertBefore(clone, targetContainer.firstChild);
+    }
+
+    showLoader(cardId, show, text = 'Loading') {
+        const loader = document.querySelector(`#${cardId} .ac-doc__loader`);
+        if (loader) {
+            loader.style.display = show ? 'flex' : 'none';
+            if (show) loader.querySelector('.ac-doc__loader-text').textContent = text;
+        }
+    }
+    getUserPlan() {
+        return this.user ? this.user.SubscriptionPlan : 'Free registration';
+    }
 }
 
+// // Создание объекта Migroot с конфигурацией
+//const migrootInstance = new Migroot(CONFIG);
 
-const pointsObserver = new MutationObserver(mutations => {
-  mutations.forEach(mutation => {
-    mutation.addedNodes.forEach(node => {
-      if (node.classList && node.classList.contains('ac-doc')) {
-        const result = calculatePoints();
-        console.log('Total points:', result);
-        UpdateUserCoins(result);
-      }
-    });
-  });
-});
-
-const pointsConfig = { childList: true, subtree: true };
-pointsObserver.observe(readyContainer, pointsConfig);
-
-</script>
+// Пример вызова метода init_dashboard
+// migrootInstance.init_dashboard();
+// migrootInstance.createDummyCard();
