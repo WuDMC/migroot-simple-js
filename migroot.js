@@ -1,3 +1,25 @@
+// const CONFIG = {
+//     template: document.getElementById('doc-template'),
+//     buttons: {
+//         uploadFile: document.getElementById('upload_file').innerHTML,
+//         openTf: document.getElementById('open_tf').innerHTML,
+//         openUrl: document.getElementById('open_url').innerHTML,
+//         submitUrl: document.getElementById('submit_url').innerHTML
+//     },
+//     containers: {
+//         ready: document.getElementById('ready'),
+//         inProgress: document.getElementById('in-progress'),
+//         notStarted: document.getElementById('not-started')
+//     },
+//     webUrl: 'https://script.google.com/macros/s/AKfycbxLRZANt4ayb0x_IRClCEw6cjA5s7b2Iv6v4sjNMmNbL1WMsNTx32eK1q8zw4CHVOJq0Q/exec',
+//     emotions: ["normal", "smile", "surprise"],
+//     migrootComments: {
+//         review: ["Wait for checking", "So-o-o-on please wait", "Okay, let's see!"],
+//         start: ["Every document tells a story.", "Efficiency is key in document management.", "Timely action is critical to success."]
+//     },
+//     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+// };
+
 class Migroot {
     constructor(config) {
         this.config = config;
