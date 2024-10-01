@@ -3,15 +3,13 @@ class Logger {
         this.debug = debug;
     }
 
-    // Получение текущего времени с миллисекундами
     _getCurrentTime() {
         const now = new Date();
-        const timeString = now.toISOString().slice(11, 23); // Формат HH:MM:SS.sss
+        const timeString = now.toISOString().slice(11, 23); 
         return timeString;
     }
 
-    // Метод для вывода лога
-    _log(message, type = 'info') {
+    _log(message, vars = null, type = 'info') {
         const styles = {
             info: 'color: blue; font-weight: bold;',
             warning: 'color: orange; font-weight: bold;',
@@ -22,24 +20,24 @@ class Logger {
         const timestamp = this._getCurrentTime();
 
         if (styles[logType]) {
-            console.log(`%c[${timestamp}] [${logType.toUpperCase()}]: ${message}`, styles[logType]);
+            console.log(`%c[${timestamp}] [${logType.toUpperCase()}]: ${message}`, styles[logType], vars);
         } else {
-            console.log(`[${timestamp}] [LOGGER]: ${message}`);
+            console.log(`[${timestamp}] [LOGGER]: ${message}`, vars);
         }
     }
 
-    info(message) {
+    info(message, vars) {
         if (this.debug) {
-            this._log(message, 'info');
+            this._log(message, vars, 'info');
         }
     }
 
-    warning(message) {
-        this._log(message, 'warning');
+    warning(message, vars) {
+        this._log(message, vars, 'warning');
     }
 
-    error(message) {
-        this._log(message, 'error');
+    error(message, vars) {
+        this._log(message, vars, 'error');
     }
 }
 
